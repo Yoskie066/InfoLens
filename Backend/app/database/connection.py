@@ -1,0 +1,17 @@
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
+
+from app.core.config import settings
+
+# Create PostgreSQL database engine
+engine = create_engine(
+    settings.DATABASE_URL,
+    echo=settings.DEBUG,
+)
+
+# Create database session factory
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
+)
