@@ -1,9 +1,10 @@
 
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
+from app.services.refresh_token_service import create_refresh_token
 
 from app.core.security import (
     hash_password,
@@ -33,6 +34,11 @@ from app.services.email_service import (
     send_verification_email,
 )
 
+from app.services.password_history_service import (
+    is_password_reused,
+    archive_current_password,
+)
+
 
 # ==========================================
 # USER REGISTRATION
@@ -40,9 +46,14 @@ from app.services.email_service import (
 
 def register_user(db: Session, user_data: RegisterRequest) -> User:
 
-    # Check if email already exists
+    # Normalize email address
+    email = str(user_data.email).strip().lower()
+
+    # Check if email already exists (case-insensitive)
     existing_user = db.scalar(
-        select(User).where(User.email == str(user_data.email))
+        select(User).where(
+            func.lower(User.email) == email
+        )
     )
 
     if existing_user:
@@ -53,7 +64,7 @@ def register_user(db: Session, user_data: RegisterRequest) -> User:
 
     # Create new user
     new_user = User(
-        email=str(user_data.email),
+        email=email,
         hashed_password=hashed_password,
         role="user",
     )
@@ -113,11 +124,21 @@ def register_user(db: Session, user_data: RegisterRequest) -> User:
 # USER LOGIN
 # ==========================================
 
+
+# ==========================================
+# USER LOGIN
+# ==========================================
+
 def login_user(db: Session, user_data: LoginRequest) -> dict:
 
-    # Find user by email
+    # Normalize email address
+    email = str(user_data.email).strip().lower()
+
+    # Find user by email (case-insensitive)
     user = db.scalar(
-        select(User).where(User.email == str(user_data.email))
+        select(User).where(
+            func.lower(User.email) == email
+        )
     )
 
     # Check credentials
@@ -139,8 +160,15 @@ def login_user(db: Session, user_data: LoginRequest) -> dict:
         }
     )
 
+    # Generate and store refresh token
+    refresh_token = create_refresh_token(
+        db=db,
+        user=user,
+    )
+
     return {
         "access_token": access_token,
+        "refresh_token": refresh_token,
         "token_type": "bearer",
         "user": user,
     }
@@ -152,9 +180,14 @@ def login_user(db: Session, user_data: LoginRequest) -> dict:
 
 def forgot_password(db: Session, email: str) -> None:
 
-    # Find user by email
+    # Normalize email address
+    email = email.strip().lower()
+
+    # Find user by email (case-insensitive)
     user = db.scalar(
-        select(User).where(User.email == email)
+        select(User).where(
+            func.lower(User.email) == email
+        )
     )
 
     # Do not reveal whether the email exists
@@ -260,7 +293,24 @@ def reset_password(
             "New password must be different from current password"
         )
 
+    # Prevent reusing previous passwords
+    if is_password_reused(
+        db=db,
+        user_id=user.id,
+        new_password=reset_data.new_password,
+    ):
+        raise ValueError(
+            "You cannot reuse a previously used password"
+        )
+
     try:
+        # Archive current password before updating
+        archive_current_password(
+            db=db,
+            user_id=user.id,
+            current_password_hash=user.hashed_password,
+        )
+
         # Update password
         user.hashed_password = hash_password(
             reset_data.new_password
@@ -280,6 +330,7 @@ def reset_password(
         for token_record in other_tokens:
             token_record.is_used = True
 
+        # Save all changes
         db.commit()
         db.refresh(user)
 

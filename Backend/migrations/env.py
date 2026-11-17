@@ -5,6 +5,19 @@ from sqlalchemy import engine_from_config, pool
 
 from app.core.config import settings
 from app.database.base import Base
+from app.models.refresh_token import RefreshToken
+
+# Import all models for Alembic autogenerate
+from app.models.user import User
+from app.models.activity_log import ActivityLog
+from app.models.article import Article
+from app.models.email_verification import EmailVerificationToken
+from app.models.password_history import PasswordHistory
+from app.models.password_reset import PasswordResetToken
+from app.models.refresh_token import RefreshToken
+from app.models.saved_article import SavedArticle
+from app.models.search_history import SearchHistory
+from app.models.summary import Summary
 
 
 # Alembic configuration

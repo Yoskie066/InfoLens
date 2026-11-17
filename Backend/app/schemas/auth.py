@@ -1,5 +1,11 @@
 
-from pydantic import BaseModel, EmailStr, Field, model_validator
+from pydantic import (
+    BaseModel,
+    EmailStr,
+    Field,
+    model_validator,
+    field_validator,
+)
 
 from app.schemas.user import UserResponse
 
@@ -8,6 +14,16 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     confirm_password: str = Field(min_length=8, max_length=128)
+
+    @field_validator("email")
+    @classmethod
+    def validate_gmail_only(cls, value: EmailStr):
+        email = str(value).strip()
+
+        if not email.lower().endswith("@gmail.com"):
+            raise ValueError("Only Gmail addresses (@gmail.com) are allowed")
+
+        return email.lower()
 
     @model_validator(mode="after")
     def validate_passwords(self):
@@ -23,8 +39,13 @@ class LoginRequest(BaseModel):
 
 class LoginResponse(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str
     user: UserResponse
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str = Field(min_length=1, max_length=255)
 
 
 class ForgotPasswordRequest(BaseModel):

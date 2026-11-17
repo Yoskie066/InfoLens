@@ -8,6 +8,7 @@ from app.schemas.auth import (
     RegisterRequest,
     LoginRequest,
     LoginResponse,
+    RefreshTokenRequest,
     ForgotPasswordRequest,
     ResetPasswordRequest,
     VerifyEmailRequest,
@@ -21,6 +22,11 @@ from app.services.auth_service import (
     forgot_password,
     reset_password,
     verify_email,
+)
+
+from app.services.refresh_token_service import (
+    refresh_access_token,
+    revoke_refresh_token,
 )
 
 
@@ -78,6 +84,62 @@ def login(
                 else status.HTTP_401_UNAUTHORIZED
             ),
             detail=error_message,
+        )
+
+
+# ==========================================
+# REFRESH ACCESS TOKEN
+# ==========================================
+
+@router.post(
+    "/refresh",
+    status_code=status.HTTP_200_OK,
+)
+def refresh_token_endpoint(
+    request_data: RefreshTokenRequest,
+    db: Session = Depends(get_db),
+):
+    try:
+        result = refresh_access_token(
+            db=db,
+            raw_token=request_data.refresh_token,
+        )
+
+        return result
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(error),
+        )
+
+
+# ==========================================
+# USER LOGOUT
+# ==========================================
+
+@router.post(
+    "/logout",
+    status_code=status.HTTP_200_OK,
+)
+def logout(
+    request_data: RefreshTokenRequest,
+    db: Session = Depends(get_db),
+):
+    try:
+        revoke_refresh_token(
+            db=db,
+            raw_token=request_data.refresh_token,
+        )
+
+        return {
+            "message": "Logged out successfully"
+        }
+
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unable to process logout request",
         )
 
 

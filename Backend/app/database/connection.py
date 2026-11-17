@@ -1,7 +1,9 @@
-from sqlalchemy import create_engine, text
+
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
+
 
 # Create PostgreSQL database engine
 engine = create_engine(
