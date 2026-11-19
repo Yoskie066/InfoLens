@@ -3,10 +3,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    # Application Configuration
     APP_NAME: str = "InfoLens"
     APP_ENV: str = "development"
     DEBUG: bool = True
 
+    # Database Configuration
     DATABASE_URL: str
 
     # JWT Configuration
@@ -23,6 +25,10 @@ class Settings(BaseSettings):
     EMAIL_FROM: str
     FRONTEND_URL: str = "http://localhost:5173"
 
+    # Tavily Search Configuration
+    TAVILY_API_KEY: str
+
+    # Environment File Configuration
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
