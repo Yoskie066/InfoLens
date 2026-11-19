@@ -1,6 +1,7 @@
+
 from fastapi import FastAPI, Depends
 
-from app.routers import auth, user
+from app.routers import auth, user, search, articles
 from app.core.dependencies import get_current_user
 from app.core.permissions import require_admin
 from app.models.user import User
@@ -13,7 +14,10 @@ app = FastAPI(
 )
 
 
-# Authentication routes
+# ==========================================
+# AUTHENTICATION ROUTES
+# ==========================================
+
 app.include_router(
     auth.router,
     prefix="/api/auth",
@@ -21,13 +25,42 @@ app.include_router(
 )
 
 
-# User routes
+# ==========================================
+# USER ROUTES
+# ==========================================
+
 app.include_router(
     user.router,
     prefix="/api/users",
     tags=["Users"],
 )
 
+
+# ==========================================
+# ARTICLE SEARCH ROUTES
+# ==========================================
+
+app.include_router(
+    search.router,
+    prefix="/api/search",
+    tags=["Article Search"],
+)
+
+
+# ==========================================
+# ARTICLE EXTRACTION ROUTES
+# ==========================================
+
+app.include_router(
+    articles.router,
+    prefix="/api/articles",
+    tags=["Articles"],
+)
+
+
+# ==========================================
+# ROOT AND HEALTH CHECK
+# ==========================================
 
 @app.get("/")
 def root():
@@ -44,7 +77,10 @@ def health_check():
     }
 
 
-# Get currently authenticated user
+# ==========================================
+# CURRENT USER INFORMATION
+# ==========================================
+
 @app.get("/api/auth/me")
 def get_current_user_info(
     current_user: User = Depends(get_current_user),
@@ -58,7 +94,10 @@ def get_current_user_info(
     }
 
 
-# Admin test endpoint
+# ==========================================
+# ADMIN TEST ENDPOINT
+# ==========================================
+
 @app.get("/api/admin/test")
 def admin_test(
     current_admin: User = Depends(require_admin),

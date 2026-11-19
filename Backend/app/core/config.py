@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     # Tavily Search Configuration
     TAVILY_API_KEY: str
 
+    # Gemini AI Configuration
+    GEMINI_API_KEY: str
+
     # Environment File Configuration
     model_config = SettingsConfigDict(
         env_file=".env",
